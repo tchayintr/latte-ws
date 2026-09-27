@@ -88,7 +88,7 @@ def run(args):
                                default_hp_metric=False)
 
     trainer = pl.Trainer.from_argparse_args(args,
-                                            accelerator='gpu',
+                                            accelerator=args.accelerator or 'gpu',
                                             devices=args.num_gpus,
                                             default_root_dir=args.save_dir,
                                             logger=logger)

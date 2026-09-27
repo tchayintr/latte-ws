@@ -255,7 +255,7 @@ class DataModule(pl.LightningDataModule):
             if data:
                 for s in data:
                     if self.include_dataset_token:
-                        s = s[:1]
+                        s = s[1:]
                     unigrams = list(''.join(s))
                     token_counter.update(unigrams)
                 token_counter = Counter({

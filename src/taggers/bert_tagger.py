@@ -625,11 +625,23 @@ class BertTagger(Tagger):
         '''get char_node_ids for batch'''
         char_node_indices = self._get_char_node_indices(
             batch_lattice, batch, input_lengths)
-        _batch_lattice = batch_lattice.detach().clone()
-        for i, (node_ids, node_indices, data) in enumerate(
-                zip(char_node_ids, char_node_indices,
-                    _batch_lattice.to_data_list())):
-            data.x[node_ids] = batch[i][node_indices].detach().clone()
+        '''
+        replace out-of-place so that gradients flow to both the lattice
+        nodes and the contextualised chars (the previous in-place write into
+        detached copies stopped the gradients of the whole lattice path)
+        '''
+        rows, srcs = [], []
+        for i, (node_ids, node_indices) in enumerate(
+                zip(char_node_ids, char_node_indices)):
+            offset = int(batch_lattice.ptr[i])
+            rows.append(
+                torch.as_tensor(node_ids, device=batch_lattice.x.device) +
+                offset)
+            srcs.append(batch[i][node_indices])
+        _batch_lattice = batch_lattice.clone()
+        _batch_lattice.x = batch_lattice.x.index_copy(
+            0, torch.cat(rows),
+            torch.cat(srcs).to(batch_lattice.x.dtype))
         return _batch_lattice
 
     def _concat_outputs_with_wv(self, outputs: torch.Tensor,
@@ -640,9 +652,8 @@ class BertTagger(Tagger):
     def _concat_node_attrs_with_wv(
             self, batch_lattice: torch.Tensor) -> torch.Tensor:
         wv_mat = self._get_node_attrs_wv(batch_lattice)
-        _batch_lattice = batch_lattice.detach().clone()
-        node_attrs = _batch_lattice.x.detach().clone()
-        _batch_lattice.x = torch.cat([node_attrs, wv_mat], dim=1)
+        _batch_lattice = batch_lattice.clone()
+        _batch_lattice.x = torch.cat([batch_lattice.x, wv_mat], dim=1)
         return _batch_lattice
 
     def _compute_active_loss(self, xs, ys, ps):
@@ -747,16 +758,10 @@ class BertTagger(Tagger):
         parser.add_argument('--bert-lr', type=float, default=2e-5)
         parser.add_argument(
             '--pretrained-model',
-            choices=[
-                'data/ptm/latte-mc3-bert-base-japanese-char-v2',
-                'data/ptm/latte-mc7-bert-base-chinese',
-                'data/ptm/latte-mc5-bert-base-multilingual-cased',
-                'data/ptm/bert-base-japanese-char-v2',
-                'data/ptm/bert-base-chinese',
-                'data/ptm/bert-base-multilingual-cased', 'bert-base-chinese',
-                'cl-tohoku/bert-base-japanese-char-v2',
-                'bert-base-multilingual-cased'
-            ])
+            help=('local path or huggingface id, e.g., '
+                  'data/ptm/latte-mc-bert-bert-thai-ws, '
+                  'yacht/latte-mc-bert-base-thai-ws, '
+                  'bert-base-multilingual-cased'))
         parser.add_argument('--model-max-seq-length', type=int, default=-1)
         parser.add_argument(
             '--node-comp-type',

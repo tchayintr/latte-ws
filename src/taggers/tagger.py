@@ -230,14 +230,14 @@ class Tagger(pl.LightningModule):
         return self.data_module.dataset_token
 
     def _get_node_attrs_from_lattice(self, batch) -> torch.Tensor:
-        return pad_sequence(
-            [data.x.detach().clone() for data in batch.to_data_list()])
+        '''keep the graph: detaching here stops the gnn from training'''
+        return pad_sequence([data.x for data in batch.to_data_list()])
 
     def _get_char_node_attrs_from_lattice(self, batch_lattice) -> torch.Tensor:
         char_node_ids = self._get_char_node_ids_from_lattice(batch_lattice)
         char_node_attrs = []
         for node_ids, data in zip(char_node_ids, batch_lattice.to_data_list()):
-            node_attrs = data.x.detach().clone()
+            node_attrs = data.x
             char_node_attrs.append(node_attrs[node_ids])
         return pad_sequence([attrs for attrs in char_node_attrs])
 
