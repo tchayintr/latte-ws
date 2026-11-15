@@ -229,6 +229,8 @@ class DataModule(pl.LightningDataModule):
         token_counter = Counter()
         for s in data:
             token_counter.update(s)
+            if isinstance(s, str):  # a dictionary entry: add the word itself, not only its characters
+                token_counter.update([s])
             if self.generate_unigram_node:
                 '''
                 s is ext_vocab_data if str
@@ -402,6 +404,8 @@ class DataModule(pl.LightningDataModule):
                                 self.generate_unigram_node, self.ext_vocab_data
                                 is not None)):
                     token_counter.update(s)
+                    if isinstance(s, str):  # a dictionary entry: add the word itself, not only its characters
+                        token_counter.update([s])
                     if self.generate_unigram_node:
                         is_ext_vocab = isinstance(s, str)
                         if (self.include_dataset_token and not is_ext_vocab):

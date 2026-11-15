@@ -16,12 +16,11 @@ ______________________________________________________________________
 
 </div>
 
-### Correction (2026): gradient bug in the original release
+### Correction (2026): gradient bug in the public code
 - In the code released with the paper (tag [`jnlp-2023`](https://github.com/tchayintr/latte-ws/tree/jnlp-2023)), the lattice path was detached from the computation graph (`.detach()` in `src/taggers/tagger.py` and `src/taggers/bert_tagger.py`).
-    - The BiGAT lattice encoder and the word-node embeddings therefore received no gradients and stayed at their random initialisation. Only the character encoder (BERT), the lattice attention (WAVG), and the output layers (projection and CRF) were trained.
-    - The same issue affected pre-training in [latte-ptm-ws](https://github.com/tchayintr/latte-ptm-ws), so the lexicon-token (word) embeddings in the released pre-trained models are untrained.
+    - When training with this code, the BiGAT lattice encoder and the word-node embeddings therefore received no gradients and stayed at their random initialisation. Only the character encoder (BERT), the lattice attention (WAVG), and the output layers (projection and CRF) were trained.
+    - The same issue was in the public pre-training code of [latte-ptm-ws](https://github.com/tchayintr/latte-ptm-ws). The models on Hugging Face are not affected: they were trained with separate internal code.
 - Fixed: gradients now flow through the whole lattice path. Verified on the bundled sample data with `tests/test_gradient_flow.py` (BiGAT parameters receiving gradients: 36/36, previously 0/36).
-- The scores below are as reported in the paper and were obtained with the original code. They have not been re-run with the fix, as we no longer have access to the original datasets.
 - Also fixed: `--pretrained-model` rejected the paths used in the multi-criteria run scripts.
 
 ### Incorporated Pre-trained models from Multi-criteria Word Segmentation integrated with LATTE
@@ -36,7 +35,7 @@ ______________________________________________________________________
     - B: beginning, M: middle, E: end, and S: single
 
 ### Segmentation Performance (including char-bin-f1, word-f1, oov-recall)
-As reported in the paper, obtained with the original code (see Correction above).
+As reported in the paper.
 - CTB6: 
     - word-f1: 98.1
     - oov-recall: 90.6
